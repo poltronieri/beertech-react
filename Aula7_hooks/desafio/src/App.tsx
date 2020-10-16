@@ -18,11 +18,9 @@ function App() {
   const [animals, setAnimals] = useState<IAnimal[]>([]);
   const [ownerAnimalsCount, setOwnerAnimalsCount] = useState<OwnerAnimalsCount[]>([]);
 
-  const ownerApi: Owners = new Owners();
-  const animalApi: Animals = new Animals();
-
   useEffect(() => {
     const getOwners = async () => {
+      const ownerApi: Owners = new Owners();
       const response = await ownerApi.getAll();
       setOwners(response);
       console.log('Owners', response);
@@ -33,24 +31,33 @@ function App() {
 
   useEffect(() => {
     const getAnimals = async () => {
+      const animalApi: Animals = new Animals();
       const response = await animalApi.getByOwnerId(1);
-      setAnimals(response);
       console.log('Animals', response);
+
+      setAnimals(response);
     };
 
     getAnimals();
   }, []);
 
-  const getAnimalCount = () => {
-    // owners.forEach(async (owner: IOwner) => {
-    //   const response = await animalApi.getByOwnerId(owner.id);
-    //   setOwnerAnimalsCount([...ownerAnimalsCount, { name: owner.name, count: response?.length }]);
-    // });
-  };
+  async function getAnimalCount() {
+    owners.forEach(async (owner: IOwner) => {
+      const response = await getAnimalsOfOwner(owner.id);
+      if (ownerAnimalsCount.length <= 0) {
+        setOwnerAnimalsCount((prevState) => [...prevState, { name: owner.name, count: response?.length }]);
+      }
+    });
+  }
 
   const changeOwner = async (ownerId: number): Promise<void> => {
+    setAnimals(await getAnimalsOfOwner(ownerId));
+  };
+
+  const getAnimalsOfOwner = async (ownerId: number) => {
+    const animalApi: Animals = new Animals();
     const response = await animalApi.getByOwnerId(ownerId);
-    setAnimals(response);
+    return response;
   };
 
   return (
@@ -86,12 +93,14 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              {ownerAnimalsCount.map((ownerAnimal) => (
-                <tr key={ownerAnimal.name}>
-                  <td>{ownerAnimal.name}</td>
-                  <td>{ownerAnimal.count}</td>
-                </tr>
-              ))}
+              {ownerAnimalsCount
+                .sort((owner1, owner2) => owner2.count - owner1.count)
+                .map((ownerAnimal) => (
+                  <tr key={ownerAnimal.name}>
+                    <td>{ownerAnimal.name}</td>
+                    <td>{ownerAnimal.count}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         )}
